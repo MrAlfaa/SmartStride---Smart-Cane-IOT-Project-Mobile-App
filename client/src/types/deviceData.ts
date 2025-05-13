@@ -1,7 +1,8 @@
 export interface Location {
   latitude: number;
   longitude: number;
-  timestamp: string;
+  timestamp: number;
+  address?: string;
 }
 
 export interface Sensors {
@@ -21,8 +22,22 @@ export interface Orientation {
 }
 
 export interface DeviceData {
+  id?: string;
+  firebaseId?: string;
+  deviceId: string;
+  battery: number;
+  steps: number;
+  distance: number;
   location: Location;
-  sensors: Sensors;
-  status: Status;
-  orientation: Orientation;
+  obstacles?: {
+    detected: boolean;
+    count: number;
+    lastDetected?: number;
+  };
+  status: {
+    connected: boolean;
+    lastConnected: number;
+  };
+  createdAt?: Date;
+  updatedAt?: Date;
 }
