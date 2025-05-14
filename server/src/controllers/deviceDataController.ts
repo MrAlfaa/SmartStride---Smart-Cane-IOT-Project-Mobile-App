@@ -116,3 +116,43 @@ export const getFallDetectionEvents = async (req: Request, res: Response): Promi
     res.status(500).json({ error: 'Failed to retrieve fall detection events' });
   }
 };
+
+// New endpoint to verify device ID
+export const verifyDeviceId = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { deviceId } = req.query;
+    
+    if (!deviceId) {
+      res.status(400).json({ error: 'Device ID is required' });
+      return;
+    }
+    
+    // Special case for the demo device
+    if (deviceId === 'SC-2334') {
+      res.status(200).json({ valid: true });
+      return;
+    }
+    
+    // Check in MongoDB first
+    const device = await DeviceData.findOne({ deviceId });
+    
+    if (device) {
+      res.status(200).json({ valid: true });
+      return;
+    }
+    
+    // Fall back to Firebase
+    const snapshot = await db.ref('/').once('value');
+    const data = snapshot.val();
+    
+    if (data && data.deviceId === deviceId) {
+      res.status(200).json({ valid: true });
+      return;
+    }
+    
+    res.status(200).json({ valid: false });
+  } catch (error) {
+    console.error('Error verifying device ID:', error);
+    res.status(500).json({ error: 'Failed to verify device ID' });
+  }
+};
