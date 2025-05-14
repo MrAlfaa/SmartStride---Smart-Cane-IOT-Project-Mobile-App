@@ -11,14 +11,16 @@ export interface Sensors {
 }
 
 export interface Status {
-  fall: string;
+  connected: boolean;
+  lastConnected: number;
+  fall?: string;
 }
 
 export interface Orientation {
-  acceleration: number;
-  pitch: number;
-  roll: number;
-  vibration: string;
+  acceleration?: number;
+  pitch?: number;
+  roll?: number;
+  vibration?: string;
 }
 
 export interface DeviceData {
@@ -34,10 +36,10 @@ export interface DeviceData {
     count: number;
     lastDetected?: number;
   };
-  status: {
-    connected: boolean;
-    lastConnected: number;
-  };
+  status: Status;
   createdAt?: Date;
   updatedAt?: Date;
+  // Add the new properties that match the Firebase data structure
+  sensors?: Sensors;
+  orientation?: Orientation;
 }
