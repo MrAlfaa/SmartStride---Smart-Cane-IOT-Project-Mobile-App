@@ -3,7 +3,8 @@ import {
   getDeviceData, 
   getLatestReading,
   getHistoricalData,
-  getDataByDateRange
+  getDataByDateRange,
+  getFallDetectionEvents
 } from '../controllers/deviceDataController';
 import {
   getNotifications,
@@ -14,15 +15,14 @@ import {
 
 const router = Router();
 
-// Existing Firebase routes
+// Device data routes
 router.get('/data', getDeviceData);
 router.get('/latest', getLatestReading);
-
-// New MongoDB routes
 router.get('/historical', getHistoricalData);
 router.get('/range', getDataByDateRange);
+router.get('/falls', getFallDetectionEvents);
 
-// Notification routes - fix type errors
+// Notification routes
 router.get('/notifications', getNotifications);
 router.get('/notifications/unread', getUnreadCount);
 router.put('/notifications/:id', markAsRead);

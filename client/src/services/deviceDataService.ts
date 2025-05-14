@@ -3,9 +3,9 @@ import { db, isConnected } from '../config/firebase';
 import { DeviceData } from '../types/deviceData';
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api/device';
+const API_BASE_URL = 'http://192.168.142.1:5000/api/device'; // Use your server IP here
 
-// Default device data to use when Firebase is unavailable
+// Default device data to use when Firebase and API are unavailable
 const getDefaultDeviceData = (): DeviceData => ({
   deviceId: 'unknown',
   battery: 0,
@@ -18,7 +18,8 @@ const getDefaultDeviceData = (): DeviceData => ({
   },
   status: {
     connected: false,
-    lastConnected: Date.now()
+    lastConnected: Date.now(),
+    fall: 'not detected'
   }
 });
 
@@ -34,7 +35,7 @@ export const subscribeToDeviceData = (callback: (data: DeviceData) => void) => {
       return () => {}; // Return empty unsubscribe function
     }
     
-    // Query the root path instead of 'deviceData'
+    // Query the root path
     const rootRef = ref(db, '/');
     
     const unsubscribe = onValue(
@@ -62,15 +63,22 @@ export const subscribeToDeviceData = (callback: (data: DeviceData) => void) => {
               longitude: data.location?.longitude || 0,
               timestamp: data.location?.timestamp 
                 ? new Date(data.location.timestamp).getTime()
-                : Date.now()
+                : Date.now(),
+              address: data.location?.address
             },
             status: {
               connected: true,
-              lastConnected: Date.now()
+              lastConnected: Date.now(),
+              fall: data.status?.fall || 'not detected'
             },
             // Add other properties if available
             sensors: data.sensors,
-            orientation: data.orientation
+            orientation: {
+              acceleration: data.status?.orientation?.acceleration,
+              pitch: data.status?.orientation?.pitch,
+              roll: data.status?.orientation?.roll,
+              vibration: data.status?.vibration
+            }
           };
           
           console.log('Converted device data:', deviceData);
@@ -98,21 +106,51 @@ export const subscribeToDeviceData = (callback: (data: DeviceData) => void) => {
 // Get the latest reading
 export const getLatestReading = async (): Promise<DeviceData> => {
   try {
-    console.log('Fetching latest reading from Firebase...');
-    
-    // If Firebase isn't connected or db is null, return default data
-    if (!db) {
-      console.warn('Firebase database instance is null, using mock data');
-      return getDefaultDeviceData();
-    }
+    console.log('Fetching latest reading from server/Firebase...');
     
     // Try to use the server API first
     try {
       const response = await axios.get(`${API_BASE_URL}/latest`);
       console.log('Retrieved latest data from server API:', response.data);
-      return response.data;
+      
+      // Convert MongoDB/server data format to DeviceData format
+      const serverData = response.data;
+      const deviceData: DeviceData = {
+        deviceId: 'cane-device',
+        battery: serverData.battery || 0,
+        steps: serverData.steps || 0,
+        distance: serverData.distance || 0,
+        location: {
+          latitude: serverData.location?.latitude || 0,
+          longitude: serverData.location?.longitude || 0,
+          timestamp: serverData.location?.timestamp 
+            ? new Date(serverData.location.timestamp).getTime()
+            : Date.now(),
+          address: serverData.location?.address
+        },
+        status: {
+          connected: true,
+          lastConnected: Date.now(),
+          fall: serverData.status?.fall || 'not detected'
+        },
+        sensors: serverData.sensors,
+        orientation: {
+          acceleration: serverData.status?.orientation?.acceleration,
+          pitch: serverData.status?.orientation?.pitch,
+          roll: serverData.status?.orientation?.roll,
+          vibration: serverData.status?.vibration
+        }
+      };
+      
+      return deviceData;
     } catch (apiError) {
       console.log('Could not retrieve data from API, falling back to Firebase:', apiError);
+    }
+    
+    // If Firebase isn't connected or db is null, return default data
+    if (!db) {
+      console.warn('Firebase database instance is null, using mock data');
+      return getDefaultDeviceData();
     }
     
     // Get data directly from the root
@@ -135,15 +173,21 @@ export const getLatestReading = async (): Promise<DeviceData> => {
           longitude: data.location?.longitude || 0,
           timestamp: data.location?.timestamp 
             ? new Date(data.location.timestamp).getTime()
-            : Date.now()
+            : Date.now(),
+          address: data.location?.address
         },
         status: {
           connected: true,
-          lastConnected: Date.now()
+          lastConnected: Date.now(),
+          fall: data.status?.fall || 'not detected'
         },
-        // Add other properties if available
         sensors: data.sensors,
-        orientation: data.orientation
+        orientation: {
+          acceleration: data.status?.orientation?.acceleration,
+          pitch: data.status?.orientation?.pitch,
+          roll: data.status?.orientation?.roll,
+          vibration: data.status?.vibration
+        }
       };
       
       console.log('Converted device data:', deviceData);
@@ -189,5 +233,25 @@ export const getDataByDateRange = async (startDate: string, endDate: string) => 
   } catch (error) {
     console.error('Error fetching data for date range:', error);
     return [];
+  }
+};
+
+// Get fall detection events with pagination
+export const getFallDetectionEvents = async (page = 1, limit = 20) => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/falls`, {
+      params: { page, limit }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching fall detection events:', error);
+    return {
+      data: [],
+      pagination: {
+        total: 0,
+        page,
+        pages: 0
+      }
+    };
   }
 };

@@ -12,24 +12,28 @@ interface ISensors {
   ultrasonic2: string;
 }
 
-interface IStatus {
-  fall: string;
-}
-
 interface IOrientation {
   acceleration: number;
   pitch: number;
   roll: number;
-  vibration: string;
+}
+
+interface IStatus {
+  fall: string;
+  orientation?: IOrientation;
+  vibration?: string;
 }
 
 export interface IDeviceData extends Document {
   location: ILocation;
   sensors: ISensors;
   status: IStatus;
-  orientation: IOrientation;
+  battery?: number;
+  steps?: number;
+  distance?: number;
   firebaseId?: string;
   createdAt: Date;
+  updatedAt?: Date;
 }
 
 const DeviceDataSchema = new Schema<IDeviceData>({
@@ -43,20 +47,26 @@ const DeviceDataSchema = new Schema<IDeviceData>({
     ultrasonic2: { type: String, required: true }
   },
   status: {
-    fall: { type: String, required: true }
+    fall: { type: String, required: true },
+    orientation: {
+      acceleration: { type: Number },
+      pitch: { type: Number },
+      roll: { type: Number }
+    },
+    vibration: { type: String }
   },
-  orientation: {
-    acceleration: { type: Number, required: true },
-    pitch: { type: Number, required: true },
-    roll: { type: Number, required: true },
-    vibration: { type: String, required: true }
-  },
+  battery: { type: Number },
+  steps: { type: Number },
+  distance: { type: Number },
   firebaseId: { type: String },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date }
 });
 
-// Create index on timestamp for efficient querying of historical data
+// Create indexes for efficient querying
 DeviceDataSchema.index({ 'location.timestamp': 1 });
+DeviceDataSchema.index({ createdAt: 1 });
+DeviceDataSchema.index({ 'status.fall': 1 });
 
 const DeviceData = mongoose.model<IDeviceData>('DeviceData', DeviceDataSchema);
 
