@@ -32,7 +32,7 @@ export const initFirebaseToMongoSync = (): void => {
         if (deviceData.status && deviceData.status.fall === 'detected') {
           const notification = new Notification({
             type: 'fall_detection',
-            message: 'Fall detected! Emergency assistance may be needed.',
+            message: 'Your care recipient may have fallen! They may need immediate assistance.',
             timestamp: new Date(),
             read: false,
             deviceId: 'cane-device',
@@ -115,7 +115,7 @@ export const initFirebaseToMongoSync = (): void => {
         if (!recentNotification) {
           const notification = new Notification({
             type: 'fall_detection',
-            message: 'Fall detected! Emergency assistance may be needed.',
+            message: 'Your care recipient may have fallen! They may need immediate assistance.',
             timestamp: new Date(),
             read: false,
             deviceId: 'cane-device',

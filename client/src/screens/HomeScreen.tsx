@@ -150,18 +150,18 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
   const showFallAlert = () => {
     Alert.alert(
       "Fall Detected!",
-      "A fall has been detected. Do you need emergency assistance?",
+      "Your care recipient may have fallen. Do they need emergency assistance?",
       [
         {
-          text: "I'm OK",
+          text: "False Alarm",
           onPress: () => setFallDetected(false),
           style: "cancel"
         },
         { 
-          text: "Get Help", 
+          text: "Respond Now", 
           onPress: () => {
             // This would typically trigger an emergency call or message
-            Alert.alert("Help is on the way", "Emergency contacts have been notified.");
+            Alert.alert("Emergency Response", "Emergency contacts have been notified.");
           }
         }
       ],
@@ -227,7 +227,7 @@ const HomeScreen = ({ navigation }: HomeScreenProps) => {
               onPress={handleViewOnMap}
               style={{ backgroundColor: '#F44336', marginBottom: 8 }}
             >
-              <ButtonText>View Fall Location on Map</ButtonText>
+              <ButtonText>Locate Your Care Recipient</ButtonText>
             </PrimaryButton>
           )}
           

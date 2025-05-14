@@ -105,7 +105,7 @@ export const getNotifications = async (page = 1, limit = 20) => {
         const mockNotification: Notification = {
           _id: 'firebase-fallback-id',
           type: 'fall_detection',
-          message: 'Fall detected! Emergency assistance may be needed.',
+          message: 'Your care recipient may have fallen! They may need immediate assistance.',
           timestamp: new Date(),
           read: false,
           deviceId: 'cane-device',

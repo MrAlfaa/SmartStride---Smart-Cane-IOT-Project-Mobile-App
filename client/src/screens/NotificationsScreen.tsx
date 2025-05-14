@@ -162,6 +162,11 @@ const NotificationsScreen = ({ navigation }: NotificationsScreenProps) => {
           </Row>
           <DateText>{formattedDate}</DateText>
         </NotificationHeader>
+        {item.type === 'fall_detection' && !item.read && (
+          <Paragraph style={{ fontWeight: 'bold', color: theme.colors.error, marginBottom: 4 }}>
+            URGENT: Assistance Needed
+          </Paragraph>
+        )}
         <Paragraph>{item.message}</Paragraph>
       </NotificationCard>
     );
