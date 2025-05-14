@@ -1,5 +1,6 @@
 import { db } from '../config/firebase';
 import DeviceData from '../models/DeviceData';
+import Notification from '../models/Notification';
 
 // Initialize Firebase listener to sync data to MongoDB
 export const initFirebaseToMongoSync = (): void => {
@@ -26,6 +27,24 @@ export const initFirebaseToMongoSync = (): void => {
         
         await newDeviceData.save();
         console.log(`Data with ID ${firebaseId} synced to MongoDB`);
+        
+        // Check for fall detection and create notification if needed
+        if (deviceData.status && deviceData.status.fall === 'detected') {
+          const notification = new Notification({
+            type: 'fall_detection',
+            message: 'Fall detected! Emergency assistance may be needed.',
+            timestamp: new Date(),
+            read: false,
+            deviceId: 'cane-device',
+            data: {
+              location: deviceData.location,
+              timestamp: deviceData.location?.timestamp
+            }
+          });
+          
+          await notification.save();
+          console.log('Fall detection notification created');
+        }
       }
     } catch (error) {
       console.error('Error syncing data to MongoDB:', error);
@@ -46,8 +65,72 @@ export const initFirebaseToMongoSync = (): void => {
       );
       
       console.log(`Data with ID ${firebaseId} updated in MongoDB`);
+      
+      // Check for fall detection in updated data
+      if (deviceData.status && deviceData.status.fall === 'detected') {
+        // Check if we already have a recent notification for this fall
+        const recentNotification = await Notification.findOne({
+          type: 'fall_detection',
+          deviceId: 'cane-device',
+          timestamp: { $gte: new Date(Date.now() - 5 * 60 * 1000) } // Last 5 minutes
+        });
+        
+        if (!recentNotification) {
+          const notification = new Notification({
+            type: 'fall_detection',
+            message: 'Fall detected! Emergency assistance may be needed.',
+            timestamp: new Date(),
+            read: false,
+            deviceId: 'cane-device',
+            data: {
+              location: deviceData.location,
+              timestamp: deviceData.location?.timestamp
+            }
+          });
+          
+          await notification.save();
+          console.log('Fall detection notification created from update');
+        }
+      }
     } catch (error) {
       console.error('Error updating data in MongoDB:', error);
+    }
+  });
+  
+  // Monitor root level for direct structure
+  const rootRef = db.ref('/');
+  rootRef.on('value', async (snapshot) => {
+    try {
+      const data = snapshot.val();
+      
+      // Check for fall detection from the root structure
+      if (data && data.status && data.status.fall === 'detected') {
+        // Check if we already have a recent notification for this fall
+        const recentNotification = await Notification.findOne({
+          type: 'fall_detection',
+          deviceId: 'cane-device',
+          timestamp: { $gte: new Date(Date.now() - 5 * 60 * 1000) } // Last 5 minutes
+        });
+        
+        if (!recentNotification) {
+          const notification = new Notification({
+            type: 'fall_detection',
+            message: 'Fall detected! Emergency assistance may be needed.',
+            timestamp: new Date(),
+            read: false,
+            deviceId: 'cane-device',
+            data: {
+              location: data.location,
+              timestamp: data.location?.timestamp
+            }
+          });
+          
+          await notification.save();
+          console.log('Fall detection notification created from root data');
+        }
+      }
+    } catch (error) {
+      console.error('Error processing root data:', error);
     }
   });
   
