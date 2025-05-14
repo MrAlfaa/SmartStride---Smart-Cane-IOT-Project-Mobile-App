@@ -5,6 +5,24 @@ import { ref, onValue, get } from 'firebase/database';
 // Change this to your actual server IP or use a dynamic approach
 const API_BASE_URL = 'http://192.168.142.1:5000/api/device';// Replace with your actual IP
 
+// Simple event system for notification changes
+type NotificationChangeListener = () => void;
+const notificationListeners: NotificationChangeListener[] = [];
+
+export const subscribeToNotificationChanges = (callback: NotificationChangeListener) => {
+  notificationListeners.push(callback);
+  return () => {
+    const index = notificationListeners.indexOf(callback);
+    if (index > -1) {
+      notificationListeners.splice(index, 1);
+    }
+  };
+};
+
+const notifyNotificationChange = () => {
+  notificationListeners.forEach(listener => listener());
+};
+
 // Add fallback mechanism to use Firebase directly when server is unreachable
 export interface Notification {
   _id: string;
@@ -87,7 +105,7 @@ export const getNotifications = async (page = 1, limit = 20) => {
         const mockNotification: Notification = {
           _id: 'firebase-fallback-id',
           type: 'fall_detection',
-          message: 'Fall detected! Emergency assistance may be needed.',
+          message: 'Your care recipient may have fallen! They may need immediate assistance.',
           timestamp: new Date(),
           read: false,
           deviceId: 'cane-device',
@@ -145,12 +163,16 @@ export const getUnreadCount = async () => {
 export const markAsRead = async (id: string) => {
   try {
     const response = await axios.put(`${API_BASE_URL}/notifications/${id}`);
+    // Notify listeners that notifications have changed
+    notifyNotificationChange();
     return response.data;
   } catch (error) {
     console.error('Error marking notification as read from server:', error);
     
     // If this is our fallback notification ID, just return a mock success
     if (id === 'firebase-fallback-id') {
+      // Notify listeners that notifications have changed
+      notifyNotificationChange();
       return {
         _id: 'firebase-fallback-id',
         type: 'fall_detection',
@@ -169,9 +191,13 @@ export const markAsRead = async (id: string) => {
 export const markAllAsRead = async () => {
   try {
     const response = await axios.put(`${API_BASE_URL}/notifications`);
+    // Notify listeners that notifications have changed
+    notifyNotificationChange();
     return response.data;
   } catch (error) {
     console.error('Error marking all notifications as read from server:', error);
+    // Notify listeners that notifications have changed
+    notifyNotificationChange();
     return { message: 'All notifications marked as read (Firebase fallback)' };
   }
 };
