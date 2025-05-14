@@ -3,7 +3,7 @@ import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import styled from 'styled-components/native';
 import { NotificationBadge as Badge, NotificationBadgeText } from './StyledComponents';
-import { getUnreadCount, subscribeTofallDetection } from '../../services/notificationService';
+import { getUnreadCount, subscribeTofallDetection, subscribeToNotificationChanges } from '../../services/notificationService';
 
 interface NotificationBadgeProps {
   onPress: () => void;
@@ -58,6 +58,22 @@ const NotificationBadge: React.FC<NotificationBadgeProps> = ({
     
     return () => {
       unsubscribe();
+    };
+  }, []);
+  
+  // Subscribe to notification changes (read/unread status)
+  useEffect(() => {
+    const unsubscribe = subscribeToNotificationChanges(() => {
+      // Refresh count whenever notifications change
+      getUnreadCount().then(newCount => {
+        setCount(newCount);
+      }).catch(error => {
+        console.error('Error updating badge after notification change:', error);
+      });
+    });
+    
+    return () => {
+      if (unsubscribe) unsubscribe();
     };
   }, []);
   

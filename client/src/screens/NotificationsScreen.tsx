@@ -114,6 +114,7 @@ const NotificationsScreen = ({ navigation }: NotificationsScreenProps) => {
           notif._id === id ? { ...notif, read: true } : notif
         )
       );
+      // markAsRead now emits a notification change event internally
     } catch (error) {
       console.error('Error marking notification as read:', error);
       Alert.alert('Error', 'Failed to mark notification as read.');
@@ -126,6 +127,7 @@ const NotificationsScreen = ({ navigation }: NotificationsScreenProps) => {
       setNotifications(prev => 
         prev.map(notif => ({ ...notif, read: true }))
       );
+      // markAllAsRead now emits a notification change event internally
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
       Alert.alert('Error', 'Failed to mark all notifications as read.');
