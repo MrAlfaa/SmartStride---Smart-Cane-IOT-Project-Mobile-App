@@ -3,6 +3,7 @@ import { TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import styled from 'styled-components/native';
 import { NotificationBadge as Badge, NotificationBadgeText } from './StyledComponents';
+import { getUnreadCount, subscribeTofallDetection } from '../../services/notificationService';
 
 interface NotificationBadgeProps {
   onPress: () => void;
@@ -22,15 +23,41 @@ const NotificationBadge: React.FC<NotificationBadgeProps> = ({
 }) => {
   const [count, setCount] = useState<number>(0);
   
-  // Simulate getting notification count - replace with actual implementation
+  // Get initial notification count and set up poller
   useEffect(() => {
-    // This would be your actual notification counting logic
-    const randomCount = Math.floor(Math.random() * 5);
-    setCount(randomCount);
+    const fetchUnreadCount = async () => {
+      try {
+        const unreadCount = await getUnreadCount();
+        setCount(unreadCount);
+      } catch (error) {
+        console.error('Error fetching notification count:', error);
+        // Don't update count on error to avoid losing current count
+      }
+    };
     
-    // Set up a notification listener
+    fetchUnreadCount();
+    
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    
     return () => {
-      // Clean up notification listener
+      clearInterval(interval);
+    };
+  }, []);
+  
+  // Subscribe to fall detection events
+  useEffect(() => {
+    const unsubscribe = subscribeTofallDetection((fallDetected) => {
+      if (fallDetected) {
+        // Increment notification count when fall is detected
+        setCount(prevCount => prevCount + 1);
+        
+        // You could also trigger a sound or vibration here
+      }
+    });
+    
+    return () => {
+      unsubscribe();
     };
   }, []);
   
