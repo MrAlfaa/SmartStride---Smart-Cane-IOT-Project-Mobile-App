@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, View, StyleSheet, ActivityIndicator } from 'react-native';
+import { ScrollView, View, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import styled from 'styled-components/native';
 import { Ionicons } from '@expo/vector-icons';
 import { 
@@ -9,12 +9,18 @@ import {
   Card, 
   PrimaryButton, 
   ButtonText, 
-  Row 
+  Row,
+  Badge,
+  BadgeText
 } from '../components/common/StyledComponents';
 import { getLatestReading } from '../services/deviceDataService';
+import { subscribeTofallDetection } from '../services/notificationService';
 import { DeviceData } from '../types/deviceData';
 import { Theme } from '../styles/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
+// Add these imports for navigation types
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ParamListBase } from '@react-navigation/native';
 
 const Container = styled.SafeAreaView`
   flex: 1;
@@ -74,15 +80,45 @@ const QuickActionButton = styled(PrimaryButton)`
   margin-horizontal: ${(props: { theme: Theme }) => props.theme.spacing.xs}px;
 `;
 
-const HomeScreen = () => {
+const AlertBanner = styled.View`
+  background-color: ${(props: { theme: Theme }) => props.theme.colors.error};
+  padding: ${(props: { theme: Theme }) => props.theme.spacing.md}px;
+  border-radius: ${(props: { theme: Theme }) => props.theme.borderRadius.medium}px;
+  margin-bottom: ${(props: { theme: Theme }) => props.theme.spacing.lg}px;
+  flex-direction: row;
+  align-items: center;
+`;
+
+const AlertText = styled.Text`
+  color: white;
+  font-size: ${(props: { theme: Theme }) => props.theme.fontSizes.md}px;
+  font-weight: ${(props: { theme: Theme }) => props.theme.fontWeights.bold};
+  flex: 1;
+  margin-left: ${(props: { theme: Theme }) => props.theme.spacing.sm}px;
+`;
+
+type HomeScreenProps = {
+  navigation: NativeStackNavigationProp<ParamListBase>;
+};
+
+const HomeScreen = ({ navigation }: HomeScreenProps) => {
   const [deviceData, setDeviceData] = useState<DeviceData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [fallDetected, setFallDetected] = useState<boolean>(false);
+  const [fallLocation, setFallLocation] = useState<any>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const data = await getLatestReading();
         setDeviceData(data);
+        
+        // Check if fall is detected from the data
+        if (data?.status?.fall === 'detected') {
+          setFallDetected(true);
+          setFallLocation(data.location);
+          showFallAlert();
+        }
       } catch (error) {
         console.error('Error fetching device data:', error);
       } finally {
@@ -94,8 +130,52 @@ const HomeScreen = () => {
     // Set up a timer to refresh data every 30 seconds
     const interval = setInterval(fetchData, 30000);
     
-    return () => clearInterval(interval);
+    // Subscribe to fall detection
+    const unsubscribe = subscribeTofallDetection((detected, location) => {
+      if (detected) {
+        setFallDetected(true);
+        setFallLocation(location);
+        showFallAlert();
+      } else {
+        setFallDetected(false);
+      }
+    });
+    
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
   }, []);
+
+  const showFallAlert = () => {
+    Alert.alert(
+      "Fall Detected!",
+      "A fall has been detected. Do you need emergency assistance?",
+      [
+        {
+          text: "I'm OK",
+          onPress: () => setFallDetected(false),
+          style: "cancel"
+        },
+        { 
+          text: "Get Help", 
+          onPress: () => {
+            // This would typically trigger an emergency call or message
+            Alert.alert("Help is on the way", "Emergency contacts have been notified.");
+          }
+        }
+      ],
+      { cancelable: false }
+    );
+  };
+
+  const handleViewOnMap = () => {
+    if (fallLocation) {
+      navigation.navigate('Track', { 
+        initialLocation: fallLocation 
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -118,6 +198,13 @@ const HomeScreen = () => {
           Monitor and control your Smart Cane to enhance mobility and safety.
         </Paragraph>
         
+        {fallDetected && (
+          <AlertBanner>
+            <Ionicons name="warning" size={24} color="white" />
+            <AlertText>Fall detected! Check on the user and take action if needed.</AlertText>
+          </AlertBanner>
+        )}
+        
         <DeviceCard>
           <Row style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <H2 style={{ marginBottom: 0 }}>Device Status</H2>
@@ -127,9 +214,22 @@ const HomeScreen = () => {
           </Row>
           
           <StatusRow>
-            <StatusIndicator active={true} />
-            <StatusText>Your SmartStride cane is active</StatusText>
+            <StatusIndicator active={deviceData?.status?.connected || false} />
+            <StatusText>
+              {deviceData?.status?.connected 
+                ? "Your SmartStride cane is active" 
+                : "Your SmartStride cane is inactive"}
+            </StatusText>
           </StatusRow>
+          
+          {fallDetected && (
+            <PrimaryButton 
+              onPress={handleViewOnMap}
+              style={{ backgroundColor: '#F44336', marginBottom: 8 }}
+            >
+              <ButtonText>View Fall Location on Map</ButtonText>
+            </PrimaryButton>
+          )}
           
           <PrimaryButton onPress={() => console.log('Checking status')}>
             <ButtonText>Refresh Status</ButtonText>
