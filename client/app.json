@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.smartstride.app"
+      "bundleIdentifier": "com.smartstride.app",
+      "config": {
+        "googleMapsApiKey": "AIzaSyAOeL-fUON761cUmmht44wZNFARhVozfe0"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +25,12 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.smartstride.app",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAOeL-fUON761cUmmht44wZNFARhVozfe0"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"

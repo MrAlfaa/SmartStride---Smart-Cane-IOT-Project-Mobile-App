@@ -1,5 +1,5 @@
-import { initializeApp } from "firebase/app";
-import { getDatabase } from "firebase/database";
+import { initializeApp, FirebaseApp } from "firebase/app";
+import { getDatabase, ref, onValue, Database } from "firebase/database";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -13,10 +13,41 @@ const firebaseConfig = {
   measurementId: "G-LB07FPLF87"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Declare variables at the top level with explicit types
+let app: FirebaseApp | null = null;
+let db: Database | null = null;
+let isConnected: boolean = false;
 
-// Initialize Realtime Database and get a reference to the service
-const db = getDatabase(app);
+// Initialize Firebase with error handling
+try {
+  console.log('Initializing Firebase with config:', JSON.stringify(firebaseConfig));
+  app = initializeApp(firebaseConfig);
+  
+  // Initialize Realtime Database and get a reference to the service
+  db = getDatabase(app);
+  
+  // Monitor connection state
+  const connectedRef = ref(db, '.info/connected');
+  onValue(connectedRef, (snap) => {
+    isConnected = snap.val() === true;
+    console.log('Firebase connection state:', isConnected ? 'connected' : 'disconnected');
+  });
+  
+  // Log a test query to see database structure
+  const testRef = ref(db, '/');
+  onValue(testRef, (snapshot) => {
+    console.log('Database root structure:', JSON.stringify(snapshot.val(), null, 2));
+  }, (error) => {
+    console.error('Error reading database structure:', error);
+  });
+  
+  console.log('Firebase initialized successfully');
+} catch (error) {
+  console.error('Error initializing Firebase:', error);
+  app = null;
+  db = null;
+  isConnected = false;
+}
 
-export { app, db };
+// Export the variables at the top level
+export { app, db, isConnected };
