@@ -6,6 +6,7 @@ import StyledProvider from './src/styles/StyledProvider';
 import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
+  // No direct text strings should be here
   return (
     <SafeAreaProvider>
       <PaperProvider>

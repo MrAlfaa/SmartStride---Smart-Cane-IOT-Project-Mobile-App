@@ -1,4 +1,5 @@
 import React from 'react';
+import { Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -56,6 +57,12 @@ const MainTabs = ({ navigation }: MainTabsProps) => {
             color={theme.colors.primary}
           />
         ),
+        // Ensure tab labels are Text components:
+        tabBarLabel: ({ focused, color }) => (
+          <Text style={{ color, fontSize: 12, marginBottom: 4 }}>
+            {route.name}
+          </Text>
+        ),
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
@@ -80,13 +87,14 @@ const AppNavigator = () => {
           options={{ headerShown: false }}
         />
         <Stack.Screen
-          name="Notifications"
-          component={NotificationsScreen}
-          options={{
-            presentation: 'modal',
-            title: 'Notifications'
-          }}
-        />
+  name="Notifications"
+  component={NotificationsScreen}
+  options={{
+    presentation: 'modal',
+    // Remove the redundant title prop
+    headerTitle: () => <Text style={{ fontWeight: 'bold' }}>Notifications</Text>
+  }}
+/>
       </Stack.Navigator>
     </NavigationContainer>
   );
