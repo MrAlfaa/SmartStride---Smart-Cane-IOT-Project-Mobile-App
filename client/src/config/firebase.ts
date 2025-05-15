@@ -17,37 +17,70 @@ const firebaseConfig = {
 let app: FirebaseApp | null = null;
 let db: Database | null = null;
 let isConnected: boolean = false;
+let connectionPromise: Promise<boolean> | null = null;
 
-// Initialize Firebase with error handling
-try {
-  console.log('Initializing Firebase with config:', JSON.stringify(firebaseConfig));
-  app = initializeApp(firebaseConfig);
+// Create a promise to track Firebase initialization
+const initializeFirebase = (): Promise<boolean> => {
+  if (connectionPromise) {
+    return connectionPromise;
+  }
   
-  // Initialize Realtime Database and get a reference to the service
-  db = getDatabase(app);
-  
-  // Monitor connection state
-  const connectedRef = ref(db, '.info/connected');
-  onValue(connectedRef, (snap) => {
-    isConnected = snap.val() === true;
-    console.log('Firebase connection state:', isConnected ? 'connected' : 'disconnected');
+  connectionPromise = new Promise((resolve) => {
+    try {
+      console.log('Initializing Firebase with config:', JSON.stringify(firebaseConfig));
+      app = initializeApp(firebaseConfig);
+      
+      // Initialize Realtime Database and get a reference to the service
+      db = getDatabase(app);
+      
+      // Monitor connection state
+      const connectedRef = ref(db, '.info/connected');
+      onValue(connectedRef, (snap) => {
+        isConnected = snap.val() === true;
+        console.log('Firebase connection state:', isConnected ? 'connected' : 'disconnected');
+        
+        if (isConnected) {
+          resolve(true);
+        }
+      });
+      
+      // Set a timeout to resolve even if connection doesn't establish
+      setTimeout(() => {
+        if (!isConnected) {
+          console.warn('Firebase connection timeout - proceeding anyway');
+          resolve(false);
+        }
+      }, 5000);
+      
+      console.log('Firebase initialized successfully');
+    } catch (error) {
+      console.error('Error initializing Firebase:', error);
+      app = null;
+      db = null;
+      isConnected = false;
+      resolve(false);
+    }
   });
   
-  // Log a test query to see database structure
-  const testRef = ref(db, '/');
-  onValue(testRef, (snapshot) => {
-    console.log('Database root structure:', JSON.stringify(snapshot.val(), null, 2));
-  }, (error) => {
-    console.error('Error reading database structure:', error);
-  });
-  
-  console.log('Firebase initialized successfully');
-} catch (error) {
-  console.error('Error initializing Firebase:', error);
-  app = null;
-  db = null;
-  isConnected = false;
-}
+  return connectionPromise;
+};
 
-// Export the variables at the top level
-export { app, db, isConnected };
+// Start initialization immediately
+initializeFirebase();
+
+// Helper function to wait for Firebase connection
+export const waitForFirebase = async (timeout = 3000): Promise<boolean> => {
+  try {
+    const connected = await Promise.race([
+      initializeFirebase(),
+      new Promise<boolean>((resolve) => setTimeout(() => resolve(false), timeout))
+    ]);
+    return connected;
+  } catch (error) {
+    console.error('Error waiting for Firebase:', error);
+    return false;
+  }
+};
+
+// Export the variables and initialization function
+export { app, db, isConnected, initializeFirebase };

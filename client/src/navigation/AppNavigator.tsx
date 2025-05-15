@@ -9,6 +9,7 @@ import HomeScreen from '../screens/HomeScreen';
 import TrackScreen from '../screens/TrackScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import NotificationsScreen from '../screens/NotificationsScreen';
+import LoginScreen from '../screens/LoginScreen';
 import NotificationBadge from '../components/common/NotificationBadge';
 import { useTheme } from 'styled-components/native';
 
@@ -67,7 +68,12 @@ const MainTabs = ({ navigation }: MainTabsProps) => {
 const AppNavigator = () => {
   return (
     <NavigationContainer>
-      <Stack.Navigator>
+      <Stack.Navigator initialRouteName="Login">
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ headerShown: false }}
+        />
         <Stack.Screen
           name="Main"
           component={MainTabs}
